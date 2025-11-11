@@ -6,10 +6,14 @@ function NotFound() {
   return (
     <div data-easytag="id1-src/pages/NotFound.jsx" style={{ padding: 24 }}>
       <Result
+        data-easytag="id2-src/pages/NotFound.jsx"
         status="404"
-        title="404"
-        subTitle="Страница не найдена"
-        extra={<Button type="primary"><Link to="/">На главную</Link></Button>}
+        title="404 — Страница не найдена"
+        extra={(
+          <Link to="/">
+            <Button type="primary">На главную</Button>
+          </Link>
+        )}
       />
     </div>
   );
