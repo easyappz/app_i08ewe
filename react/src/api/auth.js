@@ -11,3 +11,9 @@ export async function login({ username, password }) {
   const res = await instance.post('/api/auth/login/', { username, password });
   return res.data;
 }
+
+// POST /api/auth/register/ according to openapi.yml
+export async function register(payload) {
+  const res = await instance.post('/api/auth/register/', payload);
+  return res.data;
+}
