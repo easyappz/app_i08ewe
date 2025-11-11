@@ -9,18 +9,88 @@ paths:
       operationId: api_hello_retrieve
       description: Get a hello world message
       tags:
-      - api
+        - api
       security:
-      - cookieAuth: []
-      - basicAuth: []
-      - {}
+        - {}
       responses:
         '200':
+          description: ''
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Message'
-          description: ''
+  /api/auth/register/:
+    post:
+      operationId: auth_register
+      description: Register a new user
+      tags:
+        - auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterInput'
+      responses:
+        '201':
+          description: Successfully registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Me'
+  /api/auth/login/:
+    post:
+      operationId: auth_login
+      description: Obtain JWT access and refresh tokens
+      tags:
+        - auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPairRequest'
+      responses:
+        '200':
+          description: Tokens obtained
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenObtainPairResponse'
+  /api/auth/refresh/:
+    post:
+      operationId: auth_refresh
+      description: Refresh JWT access token
+      tags:
+        - auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefreshResponse'
+  /api/auth/profile/:
+    get:
+      operationId: auth_profile
+      description: Get current authenticated user profile
+      tags:
+        - auth
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current user data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Me'
 components:
   schemas:
     Message:
@@ -34,13 +104,97 @@ components:
           format: date-time
           readOnly: true
       required:
-      - message
-      - timestamp
+        - message
+        - timestamp
+    Profile:
+      type: object
+      properties:
+        full_name:
+          type: string
+        phone:
+          type: string
+        birthday:
+          type: string
+          format: date
+          nullable: true
+      required:
+        - full_name
+        - phone
+    Me:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        profile:
+          $ref: '#/components/schemas/Profile'
+      required:
+        - id
+        - username
+        - email
+        - profile
+    RegisterInput:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        full_name:
+          type: string
+        phone:
+          type: string
+        birthday:
+          type: string
+          format: date
+          nullable: true
+      required:
+        - username
+        - email
+        - password
+    TokenObtainPairRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required:
+        - username
+        - password
+    TokenObtainPairResponse:
+      type: object
+      properties:
+        refresh:
+          type: string
+        access:
+          type: string
+      required:
+        - refresh
+        - access
+    TokenRefreshRequest:
+      type: object
+      properties:
+        refresh:
+          type: string
+      required:
+        - refresh
+    TokenRefreshResponse:
+      type: object
+      properties:
+        access:
+          type: string
+      required:
+        - access
   securitySchemes:
-    basicAuth:
+    bearerAuth:
       type: http
-      scheme: basic
-    cookieAuth:
-      type: apiKey
-      in: cookie
-      name: sessionid
+      scheme: bearer
+      bearerFormat: JWT
