@@ -8,13 +8,16 @@ import { BrowserRouter } from 'react-router-dom';
 import { ConfigProvider } from 'antd';
 import ru_RU from 'antd/locale/ru_RU';
 import 'antd/dist/reset.css';
+import { AuthProvider } from './context/AuthContext';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
     <BrowserRouter>
       <ConfigProvider locale={ru_RU}>
-        <App />
+        <AuthProvider>
+          <App />
+        </AuthProvider>
       </ConfigProvider>
     </BrowserRouter>
   </React.StrictMode>
@@ -22,7 +25,7 @@ root.render(
 
 if (typeof window !== 'undefined' && typeof window.handleRoutes === 'function') {
   try {
-    window.handleRoutes(['/', '/login', '/register', '/profile', '/404']);
+    window.handleRoutes(['/', '/login', '/register', '/profile']);
   } catch (e) {
     // no-op
   }
