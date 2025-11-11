@@ -1,105 +1,74 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { loginApi, profileApi } from '../api/auth';
+import React from 'react';
+import instance from '../api/axios';
+
+const AuthContext = React.createContext(null);
 
 const ACCESS_KEY = 'access';
 const REFRESH_KEY = 'refresh';
 
-export const AuthContext = createContext({
-  access: null,
-  refresh: null,
-  user: null,
-  login: async () => {},
-  logout: () => {},
-  loadProfile: async () => {},
-});
+function getToken(key) {
+  try {
+    return localStorage.getItem(key) || null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function setToken(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch (_) {}
+}
+
+function removeToken(key) {
+  try {
+    localStorage.removeItem(key);
+  } catch (_) {}
+}
 
 export function AuthProvider({ children }) {
-  const [access, setAccess] = useState(null);
-  const [refresh, setRefresh] = useState(null);
-  const [user, setUser] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = React.useState(() => !!getToken(ACCESS_KEY));
 
-  const persistTokens = useCallback((a, r) => {
-    if (a) localStorage.setItem(ACCESS_KEY, a);
-    if (r) localStorage.setItem(REFRESH_KEY, r);
-    setAccess(a || null);
-    setRefresh(r || null);
+  React.useEffect(() => {
+    const access = getToken(ACCESS_KEY);
+    if (access) {
+      instance.defaults.headers.common['Authorization'] = `Bearer ${access}`;
+      setIsAuthenticated(true);
+    } else {
+      delete instance.defaults.headers.common['Authorization'];
+      setIsAuthenticated(false);
+    }
   }, []);
 
-  const logout = useCallback(() => {
-    try {
-      localStorage.removeItem(ACCESS_KEY);
-      localStorage.removeItem(REFRESH_KEY);
-      localStorage.removeItem('user');
-    } catch (_) {}
-    setAccess(null);
-    setRefresh(null);
-    setUser(null);
-    try {
-      window.location.assign('/login');
-    } catch (_) {}
+  const login = React.useCallback((access, refresh) => {
+    if (access) setToken(ACCESS_KEY, access);
+    if (refresh) setToken(REFRESH_KEY, refresh);
+    instance.defaults.headers.common['Authorization'] = `Bearer ${access}`;
+    setIsAuthenticated(true);
+    try { window.dispatchEvent(new Event('auth:login')); } catch (_) {}
   }, []);
 
-  const loadProfile = useCallback(async () => {
-    try {
-      const me = await profileApi();
-      setUser(me || null);
-      try {
-        localStorage.setItem('user', JSON.stringify(me || null));
-      } catch (_) {}
-      return me;
-    } catch (e) {
-      // If unauthorized, ensure clean state
-      if (e?.response?.status === 401) {
-        logout();
-      }
-      throw e;
-    }
-  }, [logout]);
+  const logout = React.useCallback(() => {
+    removeToken(ACCESS_KEY);
+    removeToken(REFRESH_KEY);
+    delete instance.defaults.headers.common['Authorization'];
+    setIsAuthenticated(false);
+    try { window.dispatchEvent(new Event('auth:logout')); } catch (_) {}
+  }, []);
 
-  const login = useCallback(async ({ username, password }) => {
-    const data = await loginApi({ username, password });
-    const a = data?.access || null;
-    const r = data?.refresh || null;
-    persistTokens(a, r);
-    await loadProfile();
-    return data;
-  }, [loadProfile, persistTokens]);
-
-  // Load tokens and cached user at init
-  useEffect(() => {
-    const a = localStorage.getItem(ACCESS_KEY);
-    const r = localStorage.getItem(REFRESH_KEY);
-    let cachedUser = null;
-    try {
-      cachedUser = JSON.parse(localStorage.getItem('user') || 'null');
-    } catch (_) {
-      cachedUser = null;
-    }
-    if (a) setAccess(a);
-    if (r) setRefresh(r);
-    if (cachedUser) setUser(cachedUser);
-    // Optionally try to refresh user profile if we have token
-    if (a) {
-      loadProfile().catch(() => {});
-    }
-  }, [loadProfile]);
-
-  // React to global logout events from axios
-  useEffect(() => {
-    const handler = () => logout();
-    window.addEventListener('auth:logout', handler);
-    return () => window.removeEventListener('auth:logout', handler);
-  }, [logout]);
-
-  const value = useMemo(() => ({ access, refresh, user, login, logout, loadProfile }), [access, refresh, user, login, logout, loadProfile]);
+  const value = React.useMemo(() => ({ isAuthenticated, login, logout }), [isAuthenticated, login, logout]);
 
   return (
     <AuthContext.Provider value={value}>
-      <div data-easytag="id1-src/context/AuthContext.jsx">{children}</div>
+      {children}
     </AuthContext.Provider>
   );
 }
 
 export function useAuth() {
-  return useContext(AuthContext);
+  const ctx = React.useContext(AuthContext);
+  if (!ctx) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
+  return ctx;
 }
