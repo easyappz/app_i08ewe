@@ -21,7 +21,7 @@ export default function Login() {
       if (!access || !refresh) {
         throw new Error('Токены не получены');
       }
-      login(access, refresh);
+      login({ access, refresh });
       message.success('Вы успешно вошли');
       navigate('/profile');
     } catch (err) {
