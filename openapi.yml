@@ -14,11 +14,14 @@ paths:
         - {}
       responses:
         '200':
-          description: ''
+          description: OK
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Message'
+              example:
+                message: Hello, world!
+                timestamp: '2025-01-01T12:00:00Z'
   /api/auth/register/:
     post:
       operationId: auth_register
@@ -31,6 +34,13 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/RegisterInput'
+            example:
+              username: jdoe
+              email: jdoe@example.com
+              password: StrongPass123!
+              full_name: John Doe
+              phone: '+7 999 123-45-67'
+              birthday: '1990-05-20'
       responses:
         '201':
           description: Successfully registered
@@ -38,6 +48,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Me'
+              example:
+                id: 1
+                username: jdoe
+                email: jdoe@example.com
+                profile:
+                  full_name: John Doe
+                  phone: '+7 999 123-45-67'
+                  birthday: '1990-05-20'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+              example:
+                email:
+                  - This field must be unique.
   /api/auth/login/:
     post:
       operationId: auth_login
@@ -50,6 +78,9 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/TokenObtainPairRequest'
+            example:
+              username: jdoe
+              password: StrongPass123!
       responses:
         '200':
           description: Tokens obtained
@@ -57,6 +88,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TokenObtainPairResponse'
+              example:
+                access: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.access
+                refresh: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.refresh
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                required:
+                  - detail
+              example:
+                detail: No active account found with the given credentials
   /api/auth/refresh/:
     post:
       operationId: auth_refresh
@@ -69,6 +116,8 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/TokenRefreshRequest'
+            example:
+              refresh: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.refresh
       responses:
         '200':
           description: Token refreshed
@@ -76,6 +125,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TokenRefreshResponse'
+              example:
+                access: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.access.new
+        '401':
+          description: Invalid refresh token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                required:
+                  - detail
+              example:
+                detail: Token is invalid or expired
   /api/auth/profile/:
     get:
       operationId: auth_profile
@@ -91,6 +155,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Me'
+              example:
+                id: 1
+                username: jdoe
+                email: jdoe@example.com
+                profile:
+                  full_name: John Doe
+                  phone: '+7 999 123-45-67'
+                  birthday: '1990-05-20'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                required:
+                  - detail
+              example:
+                detail: Authentication credentials were not provided.
 components:
   schemas:
     Message:
@@ -111,12 +196,15 @@ components:
       properties:
         full_name:
           type: string
+          description: Full name of the user
         phone:
           type: string
+          description: Phone number in international format
         birthday:
           type: string
           format: date
           nullable: true
+          description: Birthday in YYYY-MM-DD
       required:
         - full_name
         - phone
